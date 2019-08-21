@@ -2,8 +2,11 @@ package bufferlog
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -11,6 +14,77 @@ import (
 )
 
 func TestNewBufferLog(t *testing.T) {
+	return
+	sigChan := make(chan os.Signal, 2)
+	exit := make(chan struct{})
+	fileBuffer := "./demoBuffer.log"
+	under := &lumberjack.Logger{
+		Filename:   fileBuffer,
+		MaxSize:    100, // megabytes
+		MaxBackups: 3,
+		LocalTime:  true,
+		MaxAge:     28, // days
+	}
+	logger := NewBufferLog(3*1024, time.Second*10, exit, under)
+	logger.Write([]byte("abc\n"))
+	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGSTOP)
+	log.Print("use c-c to exit: \n")
+	<-sigChan
+	close(exit)
+	time.Sleep(time.Second)
+}
+
+func BenchmarkBufferLog(b *testing.B) {
+	b.Run("rawWriter", func(b *testing.B) {
+		filename := "./demobenraw.log"
+		b.ResetTimer()
+		b.RunParallel(func(pb *testing.PB) {
+			under := &lumberjack.Logger{
+				Filename:   filename,
+				MaxSize:    100, // megabytes
+				MaxBackups: 3,
+				LocalTime:  true,
+				MaxAge:     28, // days
+			}
+			for pb.Next() {
+				for i := 0; i < 1024; i++ {
+					under.Write([]byte("abc\n"))
+				}
+			}
+			under.Close()
+		})
+		if err := os.Remove(filename); err != nil {
+			b.Fatal(err)
+		}
+	})
+	b.Run("bufferWriter", func(b *testing.B) {
+		filename := "./demobufferben.log"
+		b.ResetTimer()
+		b.RunParallel(func(pb *testing.PB) {
+			under := &lumberjack.Logger{
+				Filename:   filename,
+				MaxSize:    100, // megabytes
+				MaxBackups: 3,
+				LocalTime:  true,
+				MaxAge:     28, // days
+			}
+			logger := newBufferLog(3*1024, time.Second*10, under)
+			for pb.Next() {
+				for i := 0; i < 1024; i++ {
+					logger.Write([]byte("abc\n"))
+				}
+			}
+			logger.Flush()
+			under.Close()
+		})
+		if err := os.Remove(filename); err != nil {
+			b.Fatal(err)
+		}
+	})
+
+}
+
+func Test_newBufferLog(t *testing.T) {
 	fileRaw := "./demotest.log"
 	fileBuffer := "./demotestRaw.log"
 	under := &lumberjack.Logger{
@@ -20,7 +94,7 @@ func TestNewBufferLog(t *testing.T) {
 		LocalTime:  true,
 		MaxAge:     28, // days
 	}
-	logger := NewBufferLog(3*1024, time.Second*10, under)
+	logger := newBufferLog(3*1024, time.Second*10, under)
 	underRaw := &lumberjack.Logger{
 		Filename:   fileBuffer,
 		MaxSize:    100, // megabytes
@@ -83,55 +157,5 @@ func TestNewBufferLog(t *testing.T) {
 	if fileinfoRaw.Size() != fileinfoBuffer.Size() {
 		t.Fatalf("file size not equal:raw [%s] and buffer [%s]", fileRaw, fileBuffer)
 	}
-
-}
-
-func BenchmarkBufferLog(b *testing.B) {
-	b.Run("rawWriter", func(b *testing.B) {
-		filename := "./demobenraw.log"
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			under := &lumberjack.Logger{
-				Filename:   filename,
-				MaxSize:    100, // megabytes
-				MaxBackups: 3,
-				LocalTime:  true,
-				MaxAge:     28, // days
-			}
-			for pb.Next() {
-				for i := 0; i < 1024; i++ {
-					under.Write([]byte("abc\n"))
-				}
-			}
-			under.Close()
-		})
-		if err := os.Remove(filename); err != nil {
-			b.Fatal(err)
-		}
-	})
-	b.Run("bufferWriter", func(b *testing.B) {
-		filename := "./demobufferben.log"
-		b.ResetTimer()
-		b.RunParallel(func(pb *testing.PB) {
-			under := &lumberjack.Logger{
-				Filename:   filename,
-				MaxSize:    100, // megabytes
-				MaxBackups: 3,
-				LocalTime:  true,
-				MaxAge:     28, // days
-			}
-			logger := NewBufferLog(3*1024, time.Second*10, under)
-			for pb.Next() {
-				for i := 0; i < 1024; i++ {
-					logger.Write([]byte("abc\n"))
-				}
-				logger.Flush()
-			}
-			under.Close()
-		})
-		if err := os.Remove(filename); err != nil {
-			b.Fatal(err)
-		}
-	})
 
 }

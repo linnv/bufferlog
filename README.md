@@ -7,16 +7,22 @@
 ### Example
 
 ```
-fileBuffer := "./demotestRaw.log"
+sigChan := make(chan os.Signal, 2)
+exit := make(chan struct{})
+fileBuffer := "./demoBuffer.log"
 under := &lumberjack.Logger{
-	Filename:   fileRaw,
+	Filename:   fileBuffer,
 	MaxSize:    100, // megabytes
 	MaxBackups: 3,
 	LocalTime:  true,
 	MaxAge:     28, // days
 }
-logger := NewBufferLog(3*1024, time.Second*10, under)
+logger := NewBufferLog(3*1024, time.Second*10, exit, under)
 logger.Write([]byte("abc\n"))
+signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGSTOP)
+log.Print("use c-c to exit: \n")
+<-sigChan
+close(exit)
 ```
 
 ### Performace

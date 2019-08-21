@@ -20,7 +20,14 @@ type BufLog struct {
 }
 
 //NewBufferLog implements return bufferlog filled with size, flush ticket and underly file
-func NewBufferLog(bufferSize int, flushInterval time.Duration, w io.Writer) *BufLog {
+func NewBufferLog(bufferSize int, flushInterval time.Duration, exit chan struct{}, w io.Writer) *BufLog {
+	one := newBufferLog(bufferSize, flushInterval, w)
+	one.exit = exit
+	go one.flushIntervally()
+	return one
+}
+
+func newBufferLog(bufferSize int, flushInterval time.Duration, w io.Writer) *BufLog {
 	if bufferSize < 1024 {
 		bufferSize = 1024
 	}
@@ -39,7 +46,6 @@ func NewBufferLog(bufferSize int, flushInterval time.Duration, w io.Writer) *Buf
 	}
 
 	one.buf = makeSlice(one.Len)
-	go one.flushIntervally()
 	return one
 }
 
