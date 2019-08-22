@@ -2,11 +2,8 @@ package bufferlog
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -14,8 +11,6 @@ import (
 )
 
 func TestNewBufferLog(t *testing.T) {
-	return
-	sigChan := make(chan os.Signal, 2)
 	exit := make(chan struct{})
 	fileBuffer := "./demoBuffer.log"
 	under := &lumberjack.Logger{
@@ -25,13 +20,10 @@ func TestNewBufferLog(t *testing.T) {
 		LocalTime:  true,
 		MaxAge:     28, // days
 	}
-	logger := NewBufferLog(3*1024, time.Second*10, exit, under)
+	logger := NewBufferLog(3*1024, time.Second*1, exit, under)
 	logger.Write([]byte("abc\n"))
-	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGSTOP)
-	log.Print("use c-c to exit: \n")
-	<-sigChan
 	close(exit)
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 2)
 }
 
 func BenchmarkBufferLog(b *testing.B) {

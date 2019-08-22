@@ -13,21 +13,21 @@ type BufLog struct {
 	buf         []byte `json:"buf"`
 	mux         sync.RWMutex
 	exit        chan struct{}
-	underlyFile io.Writer `json:"underlyFile"`
+	underlyFile io.WriteCloser `json:"underlyFile"`
 
 	Len           int           `json:"Len"`
 	FlushInterval time.Duration `json:"FlushInterval"`
 }
 
 //NewBufferLog implements return bufferlog filled with size, flush ticket and underly file
-func NewBufferLog(bufferSize int, flushInterval time.Duration, exit chan struct{}, w io.Writer) *BufLog {
+func NewBufferLog(bufferSize int, flushInterval time.Duration, exit chan struct{}, w io.WriteCloser) *BufLog {
 	one := newBufferLog(bufferSize, flushInterval, w)
 	one.exit = exit
 	go one.flushIntervally()
 	return one
 }
 
-func newBufferLog(bufferSize int, flushInterval time.Duration, w io.Writer) *BufLog {
+func newBufferLog(bufferSize int, flushInterval time.Duration, w io.WriteCloser) *BufLog {
 	if bufferSize < 1024 {
 		bufferSize = 1024
 	}
@@ -50,6 +50,9 @@ func newBufferLog(bufferSize int, flushInterval time.Duration, w io.Writer) *Buf
 }
 
 func (b *BufLog) Write(bs []byte) (err error) {
+	if b == nil {
+		return ERR_EMPTY_REFENCE
+	}
 	b.mux.Lock()
 	defer b.mux.Unlock()
 	if len(bs)+len(b.buf) > b.Len {
@@ -61,16 +64,39 @@ func (b *BufLog) Write(bs []byte) (err error) {
 	return
 }
 
-func (b *BufLog) Flush() (err error) {
+var ERR_EMPTY_REFENCE = errors.New("empty pointer")
+
+func (b *BufLog) Close() (err error) {
+	if b == nil {
+		return ERR_EMPTY_REFENCE
+	}
 	b.mux.Lock()
+	defer b.mux.Unlock()
+	if err = b.flush(); err != nil {
+		return errors.Wrap(err, "flush")
+	}
+	if err = b.underlyFile.Close(); err != nil {
+		return errors.Wrap(err, "underlyFile.Close")
+	}
+	return
+}
+
+func (b *BufLog) Flush() (err error) {
+	if b == nil {
+		return ERR_EMPTY_REFENCE
+	}
+	b.mux.Lock()
+	defer b.mux.Unlock()
 	if err = b.flush(); err != nil {
 		return errors.Wrap(err, "Flush")
 	}
-	b.mux.Unlock()
 	return
 }
 
 func (b *BufLog) flush() (err error) {
+	if b == nil {
+		return ERR_EMPTY_REFENCE
+	}
 	if len(b.buf) > 0 {
 		_, err = b.underlyFile.Write(b.buf[:len(b.buf)])
 		if err != nil {
@@ -83,17 +109,18 @@ func (b *BufLog) flush() (err error) {
 
 func (b *BufLog) flushIntervally() (err error) {
 	ticker := time.NewTicker(b.FlushInterval)
+	log.Printf("BufLog flushes buffer every %v\n", b.FlushInterval)
 	for {
 		select {
 		case <-b.exit:
 			log.Println("exit Buflog")
-			if err = b.Flush(); err != nil {
-				return errors.Wrap(err, "flushIntervally")
+			if err = b.Close(); err != nil {
+				return errors.Wrap(err, "flushIntervally on Close")
 			}
 			return
 		case <-ticker.C:
 			if err = b.Flush(); err != nil {
-				return errors.Wrap(err, "flushIntervally")
+				return errors.Wrap(err, "flushIntervally on Flush")
 			}
 		}
 	}
