@@ -4,7 +4,7 @@
 <img src="https://circleci.com/gh/linnv/bufferlog.svg?style=shield" alt="circleci">
 </a>
 
-👾 Bufferlog is a lib for improving log persistence efficiency
+👾 Bufferlog is a lib for improving log persistence efficiency, actually it's just an io.WriteCloser with buffer-enabled.
 
 ### Example
 

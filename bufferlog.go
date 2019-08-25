@@ -49,19 +49,20 @@ func newBufferLog(bufferSize int, flushInterval time.Duration, w io.WriteCloser)
 	return one
 }
 
-func (b *BufLog) Write(bs []byte) (err error) {
+func (b *BufLog) Write(bs []byte) (n int, err error) {
 	if b == nil {
-		return ERR_EMPTY_REFENCE
+		return 0, ERR_EMPTY_REFENCE
 	}
 	b.mux.Lock()
 	defer b.mux.Unlock()
 	if len(bs)+len(b.buf) > b.Len {
-		if err := b.flush(); err != nil {
-			return errors.Wrap(err, "Write")
+		if n, err = b.flush(); err != nil {
+			err = errors.Wrap(err, "Write")
+			return
 		}
 	}
 	b.buf = append(b.buf, bs...)
-	return
+	return len(bs), nil
 }
 
 var ERR_EMPTY_REFENCE = errors.New("empty pointer")
@@ -72,7 +73,7 @@ func (b *BufLog) Close() (err error) {
 	}
 	b.mux.Lock()
 	defer b.mux.Unlock()
-	if err = b.flush(); err != nil {
+	if _, err = b.flush(); err != nil {
 		return errors.Wrap(err, "flush")
 	}
 	if err = b.underlyFile.Close(); err != nil {
@@ -87,20 +88,21 @@ func (b *BufLog) Flush() (err error) {
 	}
 	b.mux.Lock()
 	defer b.mux.Unlock()
-	if err = b.flush(); err != nil {
+	if _, err = b.flush(); err != nil {
 		return errors.Wrap(err, "Flush")
 	}
 	return
 }
 
-func (b *BufLog) flush() (err error) {
+func (b *BufLog) flush() (n int, err error) {
 	if b == nil {
-		return ERR_EMPTY_REFENCE
+		return 0, ERR_EMPTY_REFENCE
 	}
 	if len(b.buf) > 0 {
-		_, err = b.underlyFile.Write(b.buf[:len(b.buf)])
+		n, err = b.underlyFile.Write(b.buf[:len(b.buf)])
 		if err != nil {
-			return errors.Wrap(err, "flush")
+			err = errors.Wrap(err, "flush")
+			return
 		}
 		b.buf = b.buf[:0]
 	}
