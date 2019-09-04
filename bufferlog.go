@@ -54,6 +54,7 @@ func (b *BufLog) Write(bs []byte) (n int, err error) {
 		return 0, ERR_EMPTY_REFENCE
 	}
 	b.mux.Lock()
+	//@TODO remove defer
 	defer b.mux.Unlock()
 	if len(bs)+len(b.buf) > b.Len {
 		if n, err = b.flush(); err != nil {
