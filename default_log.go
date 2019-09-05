@@ -13,14 +13,14 @@ var Buffer *BufLog
 
 func init() {
 	exit := make(chan struct{})
-	flushInterval := time.Millisecond * 500
+	flushInterval := time.Millisecond * 100
 	Buffer = newBufferLog(1<<10, flushInterval, os.Stdout)
 	Buffer.exit = exit
 	go Buffer.flushIntervally()
 
 	go func() {
 		sigChan := make(chan os.Signal, 2)
-		signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGSTOP)
+		signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 		<-sigChan
 		close(exit)
 		time.Sleep(flushInterval) //make sure Buffer has exited, or invoke Close() directly
@@ -31,7 +31,7 @@ func init() {
 func BufferDemo() {
 	Buffer.Write([]byte("abcd\n"))
 	sigChan := make(chan os.Signal, 2)
-	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGSTOP)
+	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 	go func() {
 		syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
 	}()

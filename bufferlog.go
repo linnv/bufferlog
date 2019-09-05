@@ -10,10 +10,10 @@ import (
 )
 
 type BufLog struct {
-	buf         []byte `json:"buf"`
+	buf         []byte
 	mux         sync.RWMutex
 	exit        chan struct{}
-	underlyFile io.WriteCloser `json:"underlyFile"`
+	underlyFile io.WriteCloser
 
 	Len           int           `json:"Len"`
 	FlushInterval time.Duration `json:"FlushInterval"`
