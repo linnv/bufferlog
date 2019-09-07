@@ -61,6 +61,10 @@ func (b *BufLog) Write(bs []byte) (n int, err error) {
 			err = errors.Wrap(err, "Write")
 			return
 		}
+		if len(b.buf) > b.Len {
+			b.Len = len(b.buf)
+			b.buf = make([]byte, 0, b.Len)
+		}
 	}
 	b.buf = append(b.buf, bs...)
 	return len(bs), nil
