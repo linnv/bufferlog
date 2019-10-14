@@ -3,6 +3,7 @@ package bufferlog
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -21,7 +22,11 @@ func TestNewBufferLog(t *testing.T) {
 		MaxAge:     28, // days
 	}
 	logger := NewBufferLog(3*1024, time.Second*1, exit, under)
-	logger.Write([]byte("abc\n"))
+	bsWrite := []byte("abcd\n")
+	if n, err := logger.Write(bsWrite); err != nil {
+		errStr := "wrote " + strconv.Itoa(n) + " bytes want " + strconv.Itoa(len(bsWrite)) + " bytes, err:" + err.Error()
+		print(errStr)
+	}
 	close(exit)
 	time.Sleep(time.Second * 2)
 }
@@ -40,7 +45,11 @@ func BenchmarkBufferLog(b *testing.B) {
 			}
 			for pb.Next() {
 				for i := 0; i < 1024; i++ {
-					under.Write([]byte("abc\n"))
+					bsWrite := []byte("abcd\n")
+					if n, err := under.Write(bsWrite); err != nil {
+						errStr := "wrote " + strconv.Itoa(n) + " bytes want " + strconv.Itoa(len(bsWrite)) + " bytes, err:" + err.Error()
+						print(errStr)
+					}
 				}
 			}
 			under.Close()
@@ -63,7 +72,11 @@ func BenchmarkBufferLog(b *testing.B) {
 			logger := newBufferLog(3*1024, time.Second*10, under)
 			for pb.Next() {
 				for i := 0; i < 1024; i++ {
-					logger.Write([]byte("abc\n"))
+					bsWrite := []byte("abcd\n")
+					if n, err := logger.Write(bsWrite); err != nil {
+						errStr := "wrote " + strconv.Itoa(n) + " bytes want " + strconv.Itoa(len(bsWrite)) + " bytes, err:" + err.Error()
+						print(errStr)
+					}
 				}
 			}
 			logger.Flush()
@@ -112,7 +125,11 @@ func Test_newBufferLog(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				routineDo(jobsPerRoutine, func() {
-					logger.Write([]byte("abc\n"))
+					bsWrite := []byte("abcd\n")
+					if n, err := logger.Write(bsWrite); err != nil {
+						errStr := "wrote " + strconv.Itoa(n) + " bytes want " + strconv.Itoa(len(bsWrite)) + " bytes, err:" + err.Error()
+						print(errStr)
+					}
 				})
 			}()
 		}
@@ -128,7 +145,11 @@ func Test_newBufferLog(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				routineDo(jobsPerRoutine, func() {
-					underRaw.Write([]byte("abc\n"))
+					bsWrite := []byte("abcd\n")
+					if n, err := underRaw.Write(bsWrite); err != nil {
+						errStr := "wrote " + strconv.Itoa(n) + " bytes want " + strconv.Itoa(len(bsWrite)) + " bytes, err:" + err.Error()
+						print(errStr)
+					}
 				})
 			}()
 		}

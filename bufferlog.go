@@ -23,7 +23,11 @@ type BufLog struct {
 func NewBufferLog(bufferSize int, flushInterval time.Duration, exit chan struct{}, w io.WriteCloser) *BufLog {
 	one := newBufferLog(bufferSize, flushInterval, w)
 	one.exit = exit
-	go one.flushIntervally()
+	go func() {
+		if err := one.flushIntervally(); err != nil {
+			print(err.Error())
+		}
+	}()
 	return one
 }
 
