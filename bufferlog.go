@@ -63,6 +63,7 @@ func (b *BufLog) Write(bs []byte) (n int, err error) {
 		}
 		if len(b.buf) > b.Len {
 			b.Len = len(b.buf)
+			//in case Cache thrashing happens
 			b.buf = make([]byte, 0, b.Len)
 		}
 	}
