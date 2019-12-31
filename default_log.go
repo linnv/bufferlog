@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 )
@@ -16,7 +17,11 @@ func init() {
 	flushInterval := time.Millisecond * 100
 	Buffer = newBufferLog(1<<10, flushInterval, os.Stdout)
 	Buffer.exit = exit
-	go Buffer.flushIntervally()
+	go func() {
+		if err := Buffer.flushIntervally(); err != nil {
+			print(err.Error())
+		}
+	}()
 
 	go func() {
 		sigChan := make(chan os.Signal, 2)
@@ -29,11 +34,18 @@ func init() {
 }
 
 func BufferDemo() {
-	Buffer.Write([]byte("abcd\n"))
+	bsWrite := []byte("abcd\n")
+	if n, err := Buffer.Write(bsWrite); err != nil {
+		errStr := "wrote " + strconv.Itoa(n) + " bytes want " + strconv.Itoa(len(bsWrite)) + " bytes, err:" + err.Error()
+		print(errStr)
+	}
+
 	sigChan := make(chan os.Signal, 2)
 	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 	go func() {
-		syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
+		if err := syscall.Kill(syscall.Getpid(), syscall.SIGTERM); err != nil {
+			print(err.Error())
+		}
 	}()
 
 	<-sigChan
