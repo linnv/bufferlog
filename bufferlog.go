@@ -3,6 +3,7 @@ package bufferlog
 import (
 	"io"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -84,6 +85,9 @@ func (b *BufLog) Close() (err error) {
 	defer b.mux.Unlock()
 	if _, err = b.flush(); err != nil {
 		return errors.Wrap(err, "flush")
+	}
+	if b.underlyFile == os.Stdout {
+		return
 	}
 	if err = b.underlyFile.Close(); err != nil {
 		return errors.Wrap(err, "underlyFile.Close")

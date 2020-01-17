@@ -29,6 +29,7 @@ func init() {
 		<-sigChan
 		close(exit)
 		time.Sleep(flushInterval) //make sure Buffer has exited, or invoke Close() directly
+		Buffer.Flush()
 		log.Printf("Buffer: receive exit signal \n")
 	}()
 }
@@ -49,6 +50,5 @@ func BufferDemo() {
 	}()
 
 	<-sigChan
-	log.Printf("BufferDemo: receive exit signal \n")
 	time.Sleep(time.Second * 2) //make sure Buffer has exited, or invoke Close() directly
 }
