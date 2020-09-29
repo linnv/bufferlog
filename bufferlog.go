@@ -54,6 +54,7 @@ func newBufferLog(bufferSize int, flushInterval time.Duration, w io.WriteCloser)
 	return one
 }
 
+const maxSize = 1 << 23 //8M
 func (b *BufLog) Write(bs []byte) (n int, err error) {
 	if b == nil {
 		return 0, ERR_EMPTY_REFENCE
@@ -61,18 +62,23 @@ func (b *BufLog) Write(bs []byte) (n int, err error) {
 	b.mux.Lock()
 	//@TODO remove defer
 	defer b.mux.Unlock()
+
+	if len(bs) > maxSize {
+		return b.underlyFile.Write(bs)
+	}
+
 	if len(bs)+len(b.buf) > b.Len {
 		if n, err = b.flush(); err != nil {
 			err = errors.Wrap(err, "Write")
 			return
 		}
-		if len(b.buf) > b.Len {
-			b.Len = len(b.buf)
-			//in case Cache thrashing happens
-			b.buf = make([]byte, 0, b.Len)
-		}
 	}
+
 	b.buf = append(b.buf, bs...)
+	if len(bs) > b.Len {
+		log.Printf("resize from %d to %d", b.Len, cap(bs))
+		b.Len = cap(bs)
+	}
 	return len(bs), nil
 }
 
