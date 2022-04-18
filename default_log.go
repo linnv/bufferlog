@@ -26,11 +26,20 @@ func init() {
 	go func() {
 		sigChan := make(chan os.Signal, 2)
 		signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
-		<-sigChan
+		oneSig := <-sigChan
 		close(exit)
 		time.Sleep(flushInterval) //make sure Buffer has exited, or invoke Close() directly
 		Buffer.Flush()
 		log.Printf("Buffer: receive exit signal \n")
+
+		p, err := os.FindProcess(os.Getpid())
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Buffer: putback signal to process\n")
+		if err := p.Signal(oneSig); err != nil {
+			log.Fatal(err)
+		}
 	}()
 }
 

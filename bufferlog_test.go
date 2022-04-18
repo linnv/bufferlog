@@ -2,9 +2,12 @@ package bufferlog
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"os/signal"
 	"strconv"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -27,8 +30,12 @@ func TestNewBufferLog(t *testing.T) {
 		errStr := "wrote " + strconv.Itoa(n) + " bytes want " + strconv.Itoa(len(bsWrite)) + " bytes, err:" + err.Error()
 		print(errStr)
 	}
+	sigChan := make(chan os.Signal, 2)
+	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+	log.Print("use c-c to exit: \n")
+	onesig := <-sigChan
+	log.Printf("test receive sginal %v \n", onesig)
 	close(exit)
-	time.Sleep(time.Second * 2)
 }
 
 func BenchmarkBufferLog(b *testing.B) {
