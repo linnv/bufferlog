@@ -47,7 +47,8 @@ func main() {
 	sigChan := make(chan os.Signal, 2)
 	signal.Notify(sigChan, os.Interrupt, os.Kill)
 	log.Print("use c-c to exit: \n")
-	<-sigChan
+	gotSignal := <-sigChan
+	log.Printf("test receive sginal %v \n", gotSignal)
 	os.Exit(0)
 
 }

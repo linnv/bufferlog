@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-//Buffer is just for debug, you'd better new Buflog by yourself to control Flush on exiting by the exit channel
+// Buffer is just for debug, you'd better new Buflog by yourself to control Flush on exiting by the exit channel
 var Buffer *BufLog
 
 func init() {
@@ -30,16 +30,7 @@ func init() {
 		close(exit)
 		time.Sleep(flushInterval) //make sure Buffer has exited, or invoke Close() directly
 		Buffer.Flush()
-		log.Printf("Buffer: receive exit signal \n")
-
-		p, err := os.FindProcess(os.Getpid())
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Printf("Buffer: putback signal to process\n")
-		if err := p.Signal(oneSig); err != nil {
-			log.Fatal(err)
-		}
+		log.Printf("Buffer: receive exit signal %v\n", oneSig)
 	}()
 }
 
@@ -53,11 +44,14 @@ func BufferDemo() {
 	sigChan := make(chan os.Signal, 2)
 	signal.Notify(sigChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 	go func() {
+		log.Printf("will kill self in 1 seconds\n")
+		time.Sleep(time.Second * 1)
 		if err := syscall.Kill(syscall.Getpid(), syscall.SIGTERM); err != nil {
 			print(err.Error())
 		}
 	}()
 
-	<-sigChan
+	gotSignal := <-sigChan
+	log.Printf("main: receive exit signal got %v\n", gotSignal)
 	time.Sleep(time.Second * 2) //make sure Buffer has exited, or invoke Close() directly
 }

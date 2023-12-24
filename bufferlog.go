@@ -20,7 +20,7 @@ type BufLog struct {
 	FlushInterval time.Duration `json:"FlushInterval"`
 }
 
-//NewBufferLog implements return bufferlog filled with size, flush ticket and underly file
+// NewBufferLog implements return bufferlog filled with size, flush ticket and underly file
 func NewBufferLog(bufferSize int, flushInterval time.Duration, exit chan struct{}, w io.WriteCloser) *BufLog {
 	one := newBufferLog(bufferSize, flushInterval, w)
 	one.exit = exit
